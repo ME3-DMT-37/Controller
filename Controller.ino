@@ -3,6 +3,7 @@ int direction_pin = 11;
 
 void setup() {
 
+  // set motor and direction control pins to outputs
   pinMode(motor_pin[0], OUTPUT);
   pinMode(motor_pin[1], OUTPUT);
   pinMode(motor_pin[2], OUTPUT);
@@ -15,6 +16,7 @@ void setup() {
 
 void loop() {
 
+  // run each motor for one second
   for (int i = 0; i < 6; i++) {
     motorRun(i, 100);
     delay(1000);

@@ -49,8 +49,9 @@ void setup() {
   AudioMemory(30);
   note.begin(0.15);
 
+  loosen(1);
   calibrate(1);
-  tune(1);
+  //tune(1);
 
 }
 
@@ -67,6 +68,11 @@ void loosen(int string) {
   // reset loosened flag
   bool loosened = false;
 
+  // log string number and target frequency range
+  Serial.printf("mode:   loosen\n");
+  Serial.printf("string: %d\n", string + 1);
+  Serial.printf("target: %3.2f\n", string_min[string]);
+
   while (!loosened) {
 
     // check note availability
@@ -76,14 +82,17 @@ void loosen(int string) {
       float f = note.read();
       float p = peak.read() * 1.2;
 
-      // check peak voltage
-      if (p > 0.4) {
+      // ignore mains ripple and check peak voltage
+      if ((f > 55) && (p > 0.4)) {
 
         // log note and peak voltage
         Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
 
         if (f > string_min[string]) {
+
+          // loosen string (over tuned)
           motorRun(string, -100);
+
         } else {
 
           // log status
@@ -115,7 +124,78 @@ void loosen(int string) {
 
 void calibrate(int string) {
 
+  Serial.printf("mode:   calibrate\n");
+
   bool calibrated = false;
+
+  int speed = 0;
+
+  float history[5];
+
+  int count = 0;
+
+  float total = 0.0;
+  float average = 0.0;
+
+  while (!calibrated) {
+
+    // check note availability
+    if (note.available()) {
+
+      // read frequency and peak voltage
+      float f = note.read();
+      float p = peak.read() * 1.2;
+
+      // ignore mains ripple and check peak voltage
+      if ((f > 55) && (p > 0.4)) {
+
+        if (f < string_max[string]) {
+
+          // log note and peak voltage
+          Serial.printf("note: %3.2f Hz (%3d)\n", f, speed);
+
+          for (int i = 4; i > 0; i--) {
+            history[i] = history[i - 1];
+          }
+
+          history[0] = f;
+
+          count = count + 1;
+
+          if (count > 4) {
+
+            total = 0;
+            
+            for (int i = 0; i < 5; i++) {
+              total = total + history[i];
+            }
+
+            average = total / 5.0;
+
+            Serial.printf("average: %3.2f\n", average);
+
+            if (abs(history[0] - average) < 0.5) {
+              speed = speed + 5;
+              count = 0;
+            }
+
+          }
+
+          motorRun(string, speed);
+
+        } else {
+          motorRun(string, 0);
+          calibrated = true;
+          Serial.println(speed);
+        }
+
+      }
+
+      delay(100);
+
+    }
+
+  }
 
 }
 
@@ -127,8 +207,9 @@ void tune(int string) {
   bool tuned = false;
 
   // log string number and target frequency range
+  Serial.printf("mode:   tune\n");
   Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: % 3.2f to % 3.2f Hz\n\n", string_min[string], string_max[string]);
+  Serial.printf("target: %3.2f to %3.2f Hz\n\n", string_min[string], string_max[string]);
 
   while (!tuned) {
 
@@ -140,7 +221,7 @@ void tune(int string) {
       float p = peak.read() * 1.2;
 
       // check peak voltage
-      if (p > 0.4) {
+      if ((f > 55) && (p > 0.4)) {
 
         // log note and peak voltage
         Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);

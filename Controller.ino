@@ -63,6 +63,7 @@ void setup() {
 
 void loop() {
 
+  // check note availability
   if (note.available()) {
 
     // read frequency and peak voltage

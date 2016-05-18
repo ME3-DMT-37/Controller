@@ -28,11 +28,6 @@ float speed_reverse[] = {30, 40, 40, 30, 30, 70};
 
 // ----------------------------------------------------------------
 
-bool waited = false;
-bool tuned = false;
-
-// ----------------------------------------------------------------
-
 void setup() {
 
   pinMode(led_pin, OUTPUT);
@@ -54,6 +49,7 @@ void setup() {
   AudioMemory(30);
   note.begin(0.15);
 
+  calibrate(1);
   tune(1);
 
 }
@@ -66,13 +62,69 @@ void loop() {
 
 // ----------------------------------------------------------------
 
-void calibrate() {
-  
+void loosen(int string) {
+
+  // reset loosened flag
+  bool loosened = false;
+
+  while (!loosened) {
+
+    // check note availability
+    if (note.available()) {
+
+      // read frequency and peak voltage
+      float f = note.read();
+      float p = peak.read() * 1.2;
+
+      // check peak voltage
+      if (p > 0.4) {
+
+        // log note and peak voltage
+        Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
+
+        if (f > string_min[string]) {
+          motorRun(string, -100);
+        } else {
+
+          // log status
+          Serial.println("loosened");
+
+          // stop motor
+          motorRun(string, 0);
+
+          // raise loosened flag
+          loosened = true;
+
+        }
+
+      } else {
+        motorRun(string, 0);
+      }
+
+    } else {
+      motorRun(string, 0);
+    }
+
+    delay(100);
+
+  }
+
+}
+
+// ----------------------------------------------------------------
+
+void calibrate(int string) {
+
+  bool calibrated = false;
+
 }
 
 // ----------------------------------------------------------------
 
 void tune(int string) {
+
+  bool waited = false;
+  bool tuned = false;
 
   // log string number and target frequency range
   Serial.printf("string: %d\n", string + 1);
@@ -87,8 +139,8 @@ void tune(int string) {
       float f = note.read();
       float p = peak.read() * 1.2;
 
-      // check tuned flag and peak voltage
-      if ((!tuned) && (p > 0.4)) {
+      // check peak voltage
+      if (p > 0.4) {
 
         // log note and peak voltage
         Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);

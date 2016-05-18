@@ -70,7 +70,7 @@ void loop() {
     float p = peak.read() * 1.2;
 
     // check tuned flag and peak voltage
-    if ((tuned == false) && (p > 0.5)) {
+    if ((!tuned) && (p > 0.5)) {
 
       // log note and peak voltage
       Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
@@ -89,15 +89,7 @@ void loop() {
 
       } else {
 
-        if (waited) {
-
-          // log status
-          Serial.println("tuned");
-
-          // raise tuned flag
-          tuned = true;
-
-        } else {
+        if (!waited) {
 
           // log status
           Serial.println("wait");
@@ -108,7 +100,15 @@ void loop() {
 
           // delay for settling
           delay(500);
-          
+
+        } else {
+
+          // log status
+          Serial.println("tuned");
+
+          // raise tuned flag
+          tuned = true;
+
         }
 
       }

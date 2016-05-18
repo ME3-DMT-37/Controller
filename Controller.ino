@@ -33,10 +33,6 @@ bool tuned = false;
 
 // ----------------------------------------------------------------
 
-int string = 1;
-
-// ----------------------------------------------------------------
-
 void setup() {
 
   pinMode(led_pin, OUTPUT);
@@ -55,12 +51,10 @@ void setup() {
   // delay for serial port initialisation
   delay(1000);
 
-  // log string number and target frequency range
-  Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: % 3.2f to % 3.2f Hz\n\n", string_min[string], string_max[string]);
-
   AudioMemory(30);
   note.begin(0.15);
+
+  tune(1);
 
 }
 
@@ -68,77 +62,98 @@ void setup() {
 
 void loop() {
 
-  // check note availability
-  if (note.available()) {
+}
 
-    // read frequency and peak voltage
-    float f = note.read();
-    float p = peak.read() * 1.2;
+// ----------------------------------------------------------------
 
-    // check tuned flag and peak voltage
-    if ((!tuned) && (p > 0.4)) {
+void calibrate() {
+  
+}
 
-      // log note and peak voltage
-      Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
+// ----------------------------------------------------------------
 
-      if (f > string_max[string]) {
+void tune(int string) {
 
-        // loosen string (over-tuned)
-        motorRun(string, speed_reverse[string] * (-1));
+  // log string number and target frequency range
+  Serial.printf("string: %d\n", string + 1);
+  Serial.printf("target: % 3.2f to % 3.2f Hz\n\n", string_min[string], string_max[string]);
 
-        // lower waited flag
-        waited = false;
+  while (!tuned) {
 
-      } else if (f < string_min[string]) {
+    // check note availability
+    if (note.available()) {
 
-        // tighten string (under-tuned)
-        motorRun(string, speed_forward[string]);
+      // read frequency and peak voltage
+      float f = note.read();
+      float p = peak.read() * 1.2;
 
-        // lower waited flag
-        waited = false;
+      // check tuned flag and peak voltage
+      if ((!tuned) && (p > 0.4)) {
 
-      } else {
+        // log note and peak voltage
+        Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
 
-        if (!waited) {
+        if (f > string_max[string]) {
 
-          // log status
-          Serial.println("wait");
+          // loosen string (over-tuned)
+          motorRun(string, speed_reverse[string] * (-1));
 
-          // stop motor
-          motorRun(string, 0);
+          // lower waited flag
+          waited = false;
 
-          // delay for settling
-          delay(500);
+        } else if (f < string_min[string]) {
 
-          // raise waited flag
-          waited = true;
+          // tighten string (under-tuned)
+          motorRun(string, speed_forward[string]);
+
+          // lower waited flag
+          waited = false;
 
         } else {
 
-          // log status
-          Serial.println("tuned");
+          if (!waited) {
 
-          digitalWrite(led_pin, HIGH);
+            // log status
+            Serial.println("wait");
 
-          // reset waited flag
-          waited = false;
+            // stop motor
+            motorRun(string, 0);
 
-          // raise tuned flag
-          tuned = true;
+            // delay for settling
+            delay(500);
+
+            // raise waited flag
+            waited = true;
+
+          } else {
+
+            // log status
+            Serial.println("tuned");
+
+            digitalWrite(led_pin, HIGH);
+
+            // reset waited flag
+            waited = false;
+
+            // raise tuned flag
+            tuned = true;
+
+          }
 
         }
 
+      } else {
+        motorRun(string, 0);
       }
 
     } else {
+
       motorRun(string, 0);
     }
 
-  } else {
-    motorRun(string, 0);
-  }
+    delay(100);
 
-  delay(100);
+  }
 
 }
 

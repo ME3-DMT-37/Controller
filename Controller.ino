@@ -32,7 +32,7 @@ bool tuned = false;
 
 // ----------------------------------------------------------------
 
-int string = 0;
+int string = 1;
 
 // ----------------------------------------------------------------
 
@@ -54,7 +54,7 @@ void setup() {
 
   // log string number and target frequency range
   Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: % 3.2f to % 3.2f Hz\n", string_min[string], string_max[string]);
+  Serial.printf("target: % 3.2f to % 3.2f Hz\n\n", string_min[string], string_max[string]);
 
   AudioMemory(30);
   note.begin(0.15);

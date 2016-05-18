@@ -69,78 +69,56 @@ void loop() {
     float f = note.read();
     float p = peak.read() * 1.2;
 
-    // Serial.printf("Note: %3.2f Hz\n", f);
-    // Serial.printf("Peak: %3.2f V\n", p);
+    // check tuned flag and peak voltage
+    if ((tuned == false) && (p > 0.5)) {
 
-    if (p > 0.5) {
+      // log note and peak voltage
+      Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
 
-      Serial.printf("note: %3.2f Hz\n", f);
+      if (f > string_max[string]) {
 
-      if (!tuned) {
+        // loosen string (over-tuned) and lower waited flag
+        motorRun(string, speed_reverse[string] * (-1));
+        waited = false;
 
-        if (f > string_max[string]) {
+      } else if (f < string_min[string]) {
 
-          // loosen string (over-tuned)
-          motorRun(string, speed_reverse[string] * (-1));
+        // tighten string (under-tuned) and lower waited flag
+        motorRun(string, speed_forward[string]);
+        waited = false;
 
-          // lower waited flag
-          waited = false;
+      } else {
 
-        }
-        else if (f < string_min[string]) {
+        if (waited) {
 
-          // tighten string (under-tuned)
-          motorRun(string, speed_forward[string]);
+          // log status
+          Serial.println("tuned");
 
-          // lower waited flag
-          waited = false;
+          // raise tuned flag
+          tuned = true;
 
-        }
-        else {
+        } else {
 
-          if (waited) {
+          // log status
+          Serial.println("wait");
 
-            // log status
-            Serial.println("tuned");
+          // stop motor and raise waited flag
+          motorRun(string, 0);
+          waited = true;
 
-            // raise tuned flag
-            tuned = true;
-
-          }
-          else {
-
-            // log status
-            Serial.println("wait");
-
-            // stop motor
-            motorRun(string, 0);
-
-            // delay for settling
-            delay(500);
-
-            // raise waited flag
-            waited = true;
-
-          }
-
+          // delay for settling
+          delay(500);
+          
         }
 
       }
 
-    }
-    else {
-
-      // stop motor (weak reading)
+    } else {
       motorRun(string, 0);
-
     }
 
-  }
-  else {
-
-    // stop motor (no reading)
+  } else {
     motorRun(string, 0);
-
   }
 
   delay(100);
@@ -156,11 +134,10 @@ void motorRun(int motor, int speed) {
   int direction = 0;
 
   // map power percentage to duty cycle
-  if (speed > 0) {
+  if (speed >= 0) {
     duty = map(abs(speed), 0, 100, 0, 255);
     direction = 0;
-  }
-  else {
+  } else {
     duty = map(abs(speed), 0, 100, 255, 0);
     direction = 1;
   }

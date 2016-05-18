@@ -78,14 +78,18 @@ void loop() {
 
       if (f > string_max[string]) {
 
-        // loosen string (over-tuned) and lower waited flag
+        // loosen string (over-tuned)
         motorRun(string, speed_reverse[string] * (-1));
+
+        // lower waited flag
         waited = false;
 
       } else if (f < string_min[string]) {
 
-        // tighten string (under-tuned) and lower waited flag
+        // tighten string (under-tuned)
         motorRun(string, speed_forward[string]);
+
+        // lower waited flag
         waited = false;
 
       } else {
@@ -95,17 +99,22 @@ void loop() {
           // log status
           Serial.println("wait");
 
-          // stop motor and raise waited flag
+          // stop motor
           motorRun(string, 0);
-          waited = true;
 
           // delay for settling
           delay(500);
+
+          // raise waited flag
+          waited = true;
 
         } else {
 
           // log status
           Serial.println("tuned");
+
+          // reset waited flag
+          waited = false;
 
           // raise tuned flag
           tuned = true;

@@ -38,24 +38,26 @@ int string = 0;
 
 void setup() {
 
-  // set motor and direction control pins to outputs
-  pinMode(motor_pin[0], OUTPUT);
-  pinMode(motor_pin[1], OUTPUT);
-  pinMode(motor_pin[2], OUTPUT);
-  pinMode(motor_pin[3], OUTPUT);
-  pinMode(motor_pin[4], OUTPUT);
-  pinMode(motor_pin[5], OUTPUT);
+  // set motor control pins to outputs
+  for (int i = 0; i < 6; i++) {
+    pinMode(motor_pin[i], OUTPUT);
+  }
+
+  // set direction control pin to outputs
   pinMode(direction_pin, OUTPUT);
 
+  // open serial port
   Serial.begin(9600);
+
+  // delay for serial port initialisation
+  delay(1000);
+
+  // log string number and target frequency range
+  Serial.printf("string: %d\n", string + 1);
+  Serial.printf("target: % 3.2f to % 3.2f Hz\n", string_min[string], string_max[string]);
 
   AudioMemory(30);
   note.begin(0.15);
-
-  delay(1000);
-
-  Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: % 3.2f to % 3.2f Hz\n", string_min[string], string_max[string]);
 
 }
 

@@ -14,6 +14,7 @@ AudioConnection           patchCord2(adc, peak);
 
 // ----------------------------------------------------------------
 
+int led_pin = 13;
 int motor_pin[] = {3, 4, 5, 6, 10, 9};
 int direction_pin = 11;
 
@@ -22,8 +23,8 @@ int direction_pin = 11;
 float string_min[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_max[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
-float speed_forward[] = {65, 50, 80, 90, 50, 90};
-float speed_reverse[] = {30, 40, 40, 50, 30, 70};
+float speed_forward[] = {65, 50, 80, 60, 50, 90};
+float speed_reverse[] = {30, 40, 40, 30, 30, 70};
 
 // ----------------------------------------------------------------
 
@@ -32,11 +33,13 @@ bool tuned = false;
 
 // ----------------------------------------------------------------
 
-int string = 1;
+int string = 5;
 
 // ----------------------------------------------------------------
 
 void setup() {
+
+  pinMode(led_pin, OUTPUT);
 
   // set motor control pins to outputs
   for (int i = 0; i < 6; i++) {
@@ -73,7 +76,7 @@ void loop() {
     float p = peak.read() * 1.2;
 
     // check tuned flag and peak voltage
-    if ((!tuned) && (p > 0.5)) {
+    if ((!tuned) && (p > 0.4)) {
 
       // log note and peak voltage
       Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
@@ -114,6 +117,8 @@ void loop() {
 
           // log status
           Serial.println("tuned");
+
+          digitalWrite(led_pin, HIGH);
 
           // reset waited flag
           waited = false;

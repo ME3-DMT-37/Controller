@@ -27,9 +27,12 @@ float speed_reverse[] = {30, 40, 40, 50, 30, 70};
 
 // ----------------------------------------------------------------
 
+bool waited = false;
+bool tuned = false;
+
+// ----------------------------------------------------------------
+
 int string = 0;
-int waited = 0;
-int tuned = 0;
 
 // ----------------------------------------------------------------
 
@@ -51,7 +54,8 @@ void setup() {
 
   delay(1000);
 
-  Serial.printf("tuning string %d to between %3.2f and %3.2f Hz\n", string + 1, string_min[string], string_max[string]);
+  Serial.printf("string: %d\n", string + 1);
+  Serial.printf("target: % 3.2f to % 3.2f Hz\n", string_min[string], string_max[string]);
 
 }
 
@@ -59,13 +63,10 @@ void setup() {
 
 void loop() {
 
-  // check if a note is available
   if (note.available()) {
 
-    // read frequency
+    // read frequency and peak voltage
     float f = note.read();
-
-    // read peak voltage
     float p = peak.read() * 1.2;
 
     // Serial.printf("Note: %3.2f Hz\n", f);
@@ -73,40 +74,73 @@ void loop() {
 
     if (p > 0.5) {
 
-      Serial.printf("%3.2f\n", f);
+      Serial.printf("note: %3.2f Hz\n", f);
 
       if (!tuned) {
 
-        if (f > string_max[string] && waited == 0) {
-          motorRun(string, speed_reverse[string]*(-1));
+        if (f > string_max[string]) {
+
+          // loosen string (over-tuned)
+          motorRun(string, speed_reverse[string] * (-1));
+
+          // lower waited flag
+          waited = false;
+
         }
-        else if (f < string_min[string] && waited == 0) {
+        else if (f < string_min[string]) {
+
+          // tighten string (under-tuned)
           motorRun(string, speed_forward[string]);
-        }
-        else if (waited == 0) {
-          motorRun(string, 0);
-          delay(500);
-          Serial.println("waiting");
-          waited = 1;
-        }
-        else if (waited == 1 && f < string_max[string] && f > string_min[string]) {
-          Serial.println("tuned");
-          tuned = 1;
+
+          // lower waited flag
+          waited = false;
+
         }
         else {
-          Serial.println("try again");
-          waited = 0;
+
+          if (waited) {
+
+            // log status
+            Serial.println("tuned");
+
+            // raise tuned flag
+            tuned = true;
+
+          }
+          else {
+
+            // log status
+            Serial.println("wait");
+
+            // stop motor
+            motorRun(string, 0);
+
+            // delay for settling
+            delay(500);
+
+            // raise waited flag
+            waited = true;
+
+          }
+
         }
 
       }
 
-    } else {
-      // too quiet so stop
-      motorRun(string, 0);
     }
-  } else {
-    // no note available so stop
+    else {
+
+      // stop motor (weak reading)
+      motorRun(string, 0);
+
+    }
+
+  }
+  else {
+
+    // stop motor (no reading)
     motorRun(string, 0);
+
   }
 
   delay(100);
@@ -136,7 +170,7 @@ void motorRun(int motor, int speed) {
     analogWrite(motor_pin[i], direction * 255);
   }
 
-  // set only requested motor on
+  // set requested motor on
   analogWrite(motor_pin[motor], duty);
 
   // set direction pin

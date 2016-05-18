@@ -49,248 +49,213 @@ void setup() {
   AudioMemory(30);
   note.begin(0.15);
 
-  loosen(1);
-  calibrate(1);
-  //tune(1);
-
 }
+
+// ================================================================
+
+float f;
+float p;
+
+bool loosened = false;
+bool calibrated = false;
+bool waited = false;
+bool tuned = false;
 
 // ----------------------------------------------------------------
 
 void loop() {
 
-}
+  int string = 1;
 
-// ----------------------------------------------------------------
+  // check note availability
+  if (note.available()) {
 
-void loosen(int string) {
+    // read frequency and peak voltage
+    f = note.read();
+    p = peak.read() * 1.2;
 
-  // reset loosened flag
-  bool loosened = false;
+    // remove mains interference and check peak voltage
+    if ((f > 55) && (p > 0.4)) {
 
-  // log string number and target frequency range
-  Serial.printf("mode:   loosen\n");
-  Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: %3.2f\n", string_min[string]);
-
-  while (!loosened) {
-
-    // check note availability
-    if (note.available()) {
-
-      // read frequency and peak voltage
-      float f = note.read();
-      float p = peak.read() * 1.2;
-
-      // ignore mains ripple and check peak voltage
-      if ((f > 55) && (p > 0.4)) {
-
-        // log note and peak voltage
-        Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
-
-        if (f > string_min[string]) {
-
-          // loosen string (over tuned)
-          motorRun(string, -100);
-
-        } else {
-
-          // log status
-          Serial.println("loosened");
-
-          // stop motor
-          motorRun(string, 0);
-
-          // raise loosened flag
-          loosened = true;
-
-        }
-
-      } else {
-        motorRun(string, 0);
+      if (!loosened) {
+        loosen(string);
       }
 
     } else {
       motorRun(string, 0);
     }
 
-    delay(100);
+  } else {
+    motorRun(string, 0);
+  }
+
+  delay(100);
+
+}
+
+// ================================================================
+
+void loosen(int string) {
+
+  if (f > string_min[string]) {
+
+    // loosen string (over tuned)
+    motorRun(string, -100);
+
+    // log note and peak voltage
+    Serial.printf("loosening: %3.2f Hz (%3.2f V)", f, p);
+
+  } else {
+
+    // stop motor
+    motorRun(string, 0);
+
+    // raise success flag
+    loosened = true;
+
+    // log status
+    Serial.printf(" - done");
 
   }
 
+  Serial.printf("\n");
+
 }
+
+// ================================================================
+
+const int memory = 5;
+
+float history[memory];
+
+int speed = 0; // will only work once!
+
+int iteration = 0;
 
 // ----------------------------------------------------------------
 
 void calibrate(int string) {
 
-  Serial.printf("mode:   calibrate\n");
+  float total = 0;
+  float average = 0;
 
-  bool calibrated = false;
+  if ((f < string_max[string]) || (speed >= 100)) {
 
-  int speed = 0;
+    // store frequency reading
+    history[iteration] = f;
 
-  float history[5];
+    // check for enough values to proceed
+    if (iteration > (memory - 1)) {
 
-  int count = 0;
+      // calculate total
+      for (int i = 0; i < memory; i++) {
+        total = total + history[i];
+      }
 
-  float total = 0.0;
-  float average = 0.0;
+      // calculate average
+      average = total / float(memory);
 
-  while (!calibrated) {
+      // check for stalling (small change in frequency)
+      if (abs(f - average) < 0.5) {
 
-    // check note availability
-    if (note.available()) {
+        // increment speed
+        speed = speed + 5;
 
-      // read frequency and peak voltage
-      float f = note.read();
-      float p = peak.read() * 1.2;
-
-      // ignore mains ripple and check peak voltage
-      if ((f > 55) && (p > 0.4)) {
-
-        if (f < string_max[string]) {
-
-          // log note and peak voltage
-          Serial.printf("note: %3.2f Hz (%3d)\n", f, speed);
-
-          for (int i = 4; i > 0; i--) {
-            history[i] = history[i - 1];
-          }
-
-          history[0] = f;
-
-          count = count + 1;
-
-          if (count > 4) {
-
-            total = 0;
-            
-            for (int i = 0; i < 5; i++) {
-              total = total + history[i];
-            }
-
-            average = total / 5.0;
-
-            Serial.printf("average: %3.2f\n", average);
-
-            if (abs(history[0] - average) < 0.5) {
-              speed = speed + 5;
-              count = 0;
-            }
-
-          }
-
-          motorRun(string, speed);
-
-        } else {
-          motorRun(string, 0);
-          calibrated = true;
-          Serial.println(speed);
-        }
+        // reset iteration
+        iteration = 0;
 
       }
 
-      delay(100);
-
     }
+
+    // set motor speed
+    motorRun(string, speed);
+
+    // increment iteration
+    iteration = iteration + 1;
+
+    // log frequency, averge frequency, and speed
+    Serial.printf("calibrating: %3.2f Hz (%3.2f, %3d)", f, average, speed);
+
+  } else {
+
+    // set motor off
+    motorRun(string, 0);
+
+    // raise calibrated flag
+    calibrated = true;
+
+    // log status
+    Serial.printf(" - done");
 
   }
 
+  Serial.printf("\n");
+
 }
 
-// ----------------------------------------------------------------
+// ================================================================
 
 void tune(int string) {
 
-  bool waited = false;
-  bool tuned = false;
+  // log note and peak voltage
+  Serial.printf("tuning: %3.2f Hz (%3.2f V)", f, p);
 
-  // log string number and target frequency range
-  Serial.printf("mode:   tune\n");
-  Serial.printf("string: %d\n", string + 1);
-  Serial.printf("target: %3.2f to %3.2f Hz\n\n", string_min[string], string_max[string]);
+  if (f > string_max[string]) {
 
-  while (!tuned) {
+    // loosen string (over-tuned)
+    motorRun(string, speed_reverse[string] * (-1));
 
-    // check note availability
-    if (note.available()) {
+    // lower waited flag
+    waited = false;
 
-      // read frequency and peak voltage
-      float f = note.read();
-      float p = peak.read() * 1.2;
+  } else if (f < string_min[string]) {
 
-      // check peak voltage
-      if ((f > 55) && (p > 0.4)) {
+    // tighten string (under-tuned)
+    motorRun(string, speed_forward[string]);
 
-        // log note and peak voltage
-        Serial.printf("note: %3.2f Hz (%3.2f V)\n", f, p);
+    // lower waited flag
+    waited = false;
 
-        if (f > string_max[string]) {
+  } else {
 
-          // loosen string (over-tuned)
-          motorRun(string, speed_reverse[string] * (-1));
+    if (!waited) {
 
-          // lower waited flag
-          waited = false;
+      // set motor off
+      motorRun(string, 0);
 
-        } else if (f < string_min[string]) {
+      // delay for settling
+      delay(500);
 
-          // tighten string (under-tuned)
-          motorRun(string, speed_forward[string]);
+      // raise waited flag
+      waited = true;
 
-          // lower waited flag
-          waited = false;
-
-        } else {
-
-          if (!waited) {
-
-            // log status
-            Serial.println("wait");
-
-            // stop motor
-            motorRun(string, 0);
-
-            // delay for settling
-            delay(500);
-
-            // raise waited flag
-            waited = true;
-
-          } else {
-
-            // log status
-            Serial.println("tuned");
-
-            digitalWrite(led_pin, HIGH);
-
-            // reset waited flag
-            waited = false;
-
-            // raise tuned flag
-            tuned = true;
-
-          }
-
-        }
-
-      } else {
-        motorRun(string, 0);
-      }
+      // log status
+      Serial.printf(" - waiting\n");
 
     } else {
 
-      motorRun(string, 0);
-    }
+      // reset waited flag
+      waited = false;
 
-    delay(100);
+      // raise tuned flag
+      tuned = true;
+
+      // set LED on
+      digitalWrite(led_pin, HIGH);
+
+      // log status
+      Serial.printf(" - done");
+
+    }
 
   }
 
+  Serial.printf("\n");
+
 }
 
-// ----------------------------------------------------------------
+// ================================================================
 
 void motorRun(int motor, int speed) {
 

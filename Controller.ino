@@ -101,6 +101,8 @@ void loop() {
 
 void loosen(int string) {
 
+  digitalWrite(led_pin, LOW);
+
   // log note and peak voltage
   Serial.printf("loosening: %3.2f Hz (%3.2f V)\n", f, p);
 
@@ -117,8 +119,12 @@ void loosen(int string) {
     // raise success flag
     loosened = true;
 
+    digitalWrite(led_pin, HIGH);
+
     // log status
     Serial.printf("loosening: done\n\n");
+
+    delay(1000);
 
   }
 
@@ -141,7 +147,9 @@ void calibrate(int string) {
   float total = 0;
   float average = 0;
 
-  if ((f < string_max[string]) || (speed >= 100)) {
+  digitalWrite(led_pin, LOW);
+
+  if ((f < string_max[string]) && (speed <= 100)) {
 
     // store frequency reading
     history[iteration] = f;
@@ -169,10 +177,10 @@ void calibrate(int string) {
       iteration = 0;
 
     } else {
-      
+
       // increment iteration
       iteration = iteration + 1;
-      
+
     }
 
     // set motor speed
@@ -186,12 +194,18 @@ void calibrate(int string) {
     // set motor off
     motorRun(string, 0);
 
+    speed_forward[string] = speed;
+
     // raise calibrated flag
     calibrated = true;
+
+    digitalWrite(led_pin, HIGH);
 
     // log frequency, averge frequency, and speed and status
     Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
     Serial.printf("calibrating: done\n\n");
+
+    delay(1000);
 
   }
 
@@ -200,6 +214,8 @@ void calibrate(int string) {
 // ================================================================
 
 void tune(int string) {
+
+  digitalWrite(led_pin, LOW);
 
   // log note and peak voltage
   Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
@@ -249,6 +265,8 @@ void tune(int string) {
 
       // log status
       Serial.printf("tuning: done\n");
+
+      delay(1000);
 
     }
 

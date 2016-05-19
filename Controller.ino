@@ -79,6 +79,10 @@ void loop() {
 
       if (!loosened) {
         loosen(string);
+      } else if (!calibrated) {
+        calibrate(string);
+      } else if (!tuned) {
+        tune(string);
       }
 
     } else {
@@ -97,13 +101,13 @@ void loop() {
 
 void loosen(int string) {
 
+  // log note and peak voltage
+  Serial.printf("loosening: %3.2f Hz (%3.2f V)\n", f, p);
+
   if (f > string_min[string]) {
 
     // loosen string (over tuned)
     motorRun(string, -100);
-
-    // log note and peak voltage
-    Serial.printf("loosening: %3.2f Hz (%3.2f V)", f, p);
 
   } else {
 
@@ -114,11 +118,9 @@ void loosen(int string) {
     loosened = true;
 
     // log status
-    Serial.printf(" - done");
+    Serial.printf("loosening: done\n\n");
 
   }
-
-  Serial.printf("\n");
 
 }
 
@@ -128,7 +130,7 @@ const int memory = 5;
 
 float history[memory];
 
-int speed = 0; // will only work once!
+int speed = 5; // will only work once!
 
 int iteration = 0;
 
@@ -161,21 +163,23 @@ void calibrate(int string) {
         // increment speed
         speed = speed + 5;
 
-        // reset iteration
-        iteration = 0;
-
       }
 
+      // reset iteration
+      iteration = 0;
+
+    } else {
+      
+      // increment iteration
+      iteration = iteration + 1;
+      
     }
 
     // set motor speed
     motorRun(string, speed);
 
-    // increment iteration
-    iteration = iteration + 1;
-
     // log frequency, averge frequency, and speed
-    Serial.printf("calibrating: %3.2f Hz (%3.2f, %3d)", f, average, speed);
+    Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
 
   } else {
 
@@ -185,12 +189,11 @@ void calibrate(int string) {
     // raise calibrated flag
     calibrated = true;
 
-    // log status
-    Serial.printf(" - done");
+    // log frequency, averge frequency, and speed and status
+    Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
+    Serial.printf("calibrating: done\n\n");
 
   }
-
-  Serial.printf("\n");
 
 }
 
@@ -199,7 +202,7 @@ void calibrate(int string) {
 void tune(int string) {
 
   // log note and peak voltage
-  Serial.printf("tuning: %3.2f Hz (%3.2f V)", f, p);
+  Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
 
   if (f > string_max[string]) {
 
@@ -231,7 +234,7 @@ void tune(int string) {
       waited = true;
 
       // log status
-      Serial.printf(" - waiting\n");
+      Serial.printf("tuning: waiting\n");
 
     } else {
 
@@ -245,13 +248,11 @@ void tune(int string) {
       digitalWrite(led_pin, HIGH);
 
       // log status
-      Serial.printf(" - done");
+      Serial.printf("tuning: done\n");
 
     }
 
   }
-
-  Serial.printf("\n");
 
 }
 

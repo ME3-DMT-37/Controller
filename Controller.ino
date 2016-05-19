@@ -12,6 +12,11 @@ AudioAnalyzePeak          peak;
 AudioConnection           patchCord(adc, note);
 AudioConnection           patchCord2(adc, peak);
 
+// ---------------------------------------------------------------
+
+#define TIGHTEN 0
+#define LOOSEN 1
+
 // ----------------------------------------------------------------
 
 int led_pin = 13;
@@ -23,7 +28,7 @@ int direction_pin = 11;
 float string_min[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_max[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
-float speed_forward[] = {65, 50, 80, 60, 50, 90};
+float speed_forward[] = {65, 65, 55, 50, 50, 90};
 float speed_reverse[] = {30, 40, 40, 30, 30, 70};
 
 // ----------------------------------------------------------------
@@ -56,16 +61,16 @@ void setup() {
 float f;
 float p;
 
-bool loosened = false;
+bool detuned = false;
 bool calibrated = false;
 bool waited = false;
-bool tuned = false;
+bool tuned = true;
 
 // ----------------------------------------------------------------
 
 void loop() {
 
-  int string = 1;
+  int string = 2;
 
   // check note availability
   if (note.available()) {
@@ -75,12 +80,12 @@ void loop() {
     p = peak.read() * 1.2;
 
     // remove mains interference and check peak voltage
-    if ((f > 55) && (p > 0.4)) {
+    if ((f > 55) && (p > 0.3)) {
 
-      if (!loosened) {
-        loosen(string);
+      if (!detuned) {
+        detune(string, TIGHTEN);
       } else if (!calibrated) {
-        calibrate(string);
+        calibrate(string, LOOSEN);
       } else if (!tuned) {
         tune(string);
       }
@@ -99,16 +104,21 @@ void loop() {
 
 // ================================================================
 
-void loosen(int string) {
+void detune(int string, int direction) {
 
   digitalWrite(led_pin, LOW);
 
   // log note and peak voltage
-  Serial.printf("loosening: %3.2f Hz (%3.2f V)\n", f, p);
+  Serial.printf("detuning: %3.2f Hz (%3.2f V)\n", f, p);
 
-  if (f > string_min[string]) {
+  if ((direction == TIGHTEN) && (f < string_max[string])) {
 
-    // loosen string (over tuned)
+    // tigthten string
+    motorRun(string, 100);
+
+  } else if ((direction == LOOSEN) && (f > string_min[string])) {
+
+    // loosen string
     motorRun(string, -100);
 
   } else {
@@ -117,12 +127,12 @@ void loosen(int string) {
     motorRun(string, 0);
 
     // raise success flag
-    loosened = true;
+    detuned = true;
 
     digitalWrite(led_pin, HIGH);
 
     // log status
-    Serial.printf("loosening: done\n\n");
+    Serial.printf("detuning: done\n\n");
 
     delay(1000);
 
@@ -136,76 +146,91 @@ const int memory = 5;
 
 float history[memory];
 
-int speed = 5; // will only work once!
+int speed = 10; // will only work once!
 
 int iteration = 0;
 
 // ----------------------------------------------------------------
 
-void calibrate(int string) {
+void calibrate(int string, int direction) {
 
   float total = 0;
   float average = 0;
 
   digitalWrite(led_pin, LOW);
 
-  if ((f < string_max[string]) && (speed <= 100)) {
+  // store frequency reading
+  history[iteration] = f;
 
-    // store frequency reading
-    history[iteration] = f;
+  Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
 
-    // check for enough values to proceed
-    if (iteration > (memory - 1)) {
+  // check for enough values to proceed
+  if (iteration > (memory - 1)) {
 
-      // calculate total
-      for (int i = 0; i < memory; i++) {
-        total = total + history[i];
-      }
+    // calculate total
+    for (int i = 0; i < memory; i++) {
+      total = total + history[i];
+    }
 
-      // calculate average
-      average = total / float(memory);
+    // calculate average
+    average = total / float(memory);
 
-      // check for stalling (small change in frequency)
-      if (abs(f - average) < 0.5) {
+    // check for stalling (small change in frequency)
+    if (abs(f - average) < 0.5) {
+
+      if ((direction == TIGHTEN) && (f < string_max[string]) && (speed <= 100)) {
 
         // increment speed
         speed = speed + 5;
 
+        // set motor speed
+        motorRun(string, speed);
+
+        Serial.printf("calibrating: continue\n\n");
+
+      } else if ((direction == LOOSEN) && (f > string_min[string]) && (speed <= 100)) {
+
+        // decrement speed
+        speed = speed + 5;
+
+        // set motor speed
+        motorRun(string, speed * (-1));
+
+        Serial.printf("calibrating: continue\n\n");
+
+      } else {
+
+        // set motor off
+        motorRun(string, 0);
+
+        if (direction = TIGHTEN) {
+          speed_forward[string] = speed;
+        } else if (direction = LOOSEN) {
+          speed_reverse[string] = speed;
+        }
+
+        // raise calibrated flag
+        calibrated = true;
+
+        digitalWrite(led_pin, HIGH);
+
+        // log frequency, averge frequency, and speed and status
+        Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
+        Serial.printf("calibrating: done\n\n");
+
+        delay(1000);
+
       }
-
-      // reset iteration
-      iteration = 0;
-
-    } else {
-
-      // increment iteration
-      iteration = iteration + 1;
 
     }
 
-    // set motor speed
-    motorRun(string, speed);
-
-    // log frequency, averge frequency, and speed
-    Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
+    // reset iteration
+    iteration = 0;
 
   } else {
 
-    // set motor off
-    motorRun(string, 0);
-
-    speed_forward[string] = speed;
-
-    // raise calibrated flag
-    calibrated = true;
-
-    digitalWrite(led_pin, HIGH);
-
-    // log frequency, averge frequency, and speed and status
-    Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
-    Serial.printf("calibrating: done\n\n");
-
-    delay(1000);
+    // increment iteration
+    iteration = iteration + 1; //check if this resets iterations when guitar voltage drops below threshold voltage
 
   }
 

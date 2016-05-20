@@ -70,7 +70,7 @@ bool tuned = true;
 
 void loop() {
 
-  int string = 2;
+  int string = 1;
 
   // check note availability
   if (note.available()) {
@@ -186,7 +186,7 @@ void calibrate(int string, int direction) {
         // set motor speed
         motorRun(string, speed);
 
-        Serial.printf("calibrating: continue\n\n");
+        Serial.printf("calibrating: stalled\n\n");
 
       } else if ((direction == LOOSEN) && (f > string_min[string]) && (speed <= 100)) {
 
@@ -196,16 +196,16 @@ void calibrate(int string, int direction) {
         // set motor speed
         motorRun(string, speed * (-1));
 
-        Serial.printf("calibrating: continue\n\n");
+        Serial.printf("calibrating: stalled\n\n");
 
       } else {
 
         // set motor off
         motorRun(string, 0);
 
-        if (direction = TIGHTEN) {
+        if (direction == TIGHTEN) {
           speed_forward[string] = speed;
-        } else if (direction = LOOSEN) {
+        } else if (direction == LOOSEN) {
           speed_reverse[string] = speed;
         }
 

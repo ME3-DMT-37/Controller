@@ -14,8 +14,8 @@ AudioConnection           patchCord2(adc, peak);
 
 // ---------------------------------------------------------------
 
-#define TIGHTEN 0
-#define LOOSEN 1
+#define FORWARD 0
+#define REVERSE 1
 
 // ----------------------------------------------------------------
 
@@ -61,16 +61,16 @@ void setup() {
 float f;
 float p;
 
-bool detuned = false;
-bool calibrated = false;
+bool detuned = true;
+bool calibrated = true;
 bool waited = false;
-bool tuned = true;
+bool tuned = false;
 
 // ----------------------------------------------------------------
 
 void loop() {
 
-  int string = 1;
+  int string = 2;
 
   // check note availability
   if (note.available()) {
@@ -83,9 +83,9 @@ void loop() {
     if ((f > 55) && (p > 0.3)) {
 
       if (!detuned) {
-        detune(string, TIGHTEN);
+        detune(string, REVERSE);
       } else if (!calibrated) {
-        calibrate(string, LOOSEN);
+        calibrate(string, FORWARD);
       } else if (!tuned) {
         tune(string);
       }
@@ -111,12 +111,12 @@ void detune(int string, int direction) {
   // log note and peak voltage
   Serial.printf("detuning: %3.2f Hz (%3.2f V)\n", f, p);
 
-  if ((direction == TIGHTEN) && (f < string_max[string])) {
+  if ((direction == FORWARD) && (f < string_max[string])) {
 
     // tigthten string
     motorRun(string, 100);
 
-  } else if ((direction == LOOSEN) && (f > string_min[string])) {
+  } else if ((direction == REVERSE) && (f > string_min[string])) {
 
     // loosen string
     motorRun(string, -100);
@@ -165,7 +165,7 @@ void calibrate(int string, int direction) {
   Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
 
   // check for enough values to proceed
-  if (iteration > (memory - 1)) {
+  if (iteration >= (memory - 1)) {
 
     // calculate total
     for (int i = 0; i < memory; i++) {
@@ -175,39 +175,36 @@ void calibrate(int string, int direction) {
     // calculate average
     average = total / float(memory);
 
-    // check for stalling (small change in frequency)
-    if (abs(f - average) < 0.5) {
+    if (direction == FORWARD) {
 
-      if ((direction == TIGHTEN) && (f < string_max[string]) && (speed <= 100)) {
+      if (f < string_max[string]) {
 
-        // increment speed
-        speed = speed + 5;
+        // check for stalling (no change in frequency)
+        if ((abs(f - average) < 0.5) && (speed <= 100)) {
 
-        // set motor speed
-        motorRun(string, speed);
+          // increment speed
+          speed = speed + 5;
 
-        Serial.printf("calibrating: stalled\n\n");
+          // set motor speed
+          motorRun(string, speed);
 
-      } else if ((direction == LOOSEN) && (f > string_min[string]) && (speed <= 100)) {
+          // log status
+          Serial.printf("calibrating: stalled\n\n");
 
-        // decrement speed
-        speed = speed + 5;
+        } else {
 
-        // set motor speed
-        motorRun(string, speed * (-1));
-
-        Serial.printf("calibrating: stalled\n\n");
+          // log status
+          Serial.printf("calibrating: continue\n\n");
+          
+        }
 
       } else {
 
         // set motor off
         motorRun(string, 0);
 
-        if (direction == TIGHTEN) {
-          speed_forward[string] = speed;
-        } else if (direction == LOOSEN) {
-          speed_reverse[string] = speed;
-        }
+        // save speed
+        speed_forward[string] = speed;
 
         // raise calibrated flag
         calibrated = true;
@@ -215,9 +212,46 @@ void calibrate(int string, int direction) {
         digitalWrite(led_pin, HIGH);
 
         // log frequency, averge frequency, and speed and status
-        Serial.printf("calibrating: %3.2f Hz (%d)\n", f, speed);
         Serial.printf("calibrating: done\n\n");
 
+        // wait
+        delay(1000);
+
+      }
+
+    }
+
+    if (direction == REVERSE) {
+
+      // check for movement (small change in frequency)
+      if ((abs(f - average) < 0.5) && (speed <= 100)) {
+
+        // increment speed
+        speed = speed + 5;
+
+        // set motor speed
+        motorRun(string, speed * (-1));
+
+        // log status
+        Serial.printf("calibrating: stalled\n\n");
+
+      } else {
+
+        // set motor off
+        motorRun(string, 0);
+
+        // save speed
+        speed_reverse[string] = speed;
+
+        // raise calibrated flag
+        calibrated = true;
+
+        digitalWrite(led_pin, HIGH);
+
+        // log frequency, averge frequency, and speed and status
+        Serial.printf("calibrating: done\n\n");
+
+        // wait
         delay(1000);
 
       }
@@ -275,7 +309,7 @@ void tune(int string) {
       waited = true;
 
       // log status
-      Serial.printf("tuning: waiting\n");
+      Serial.printf("tuning: waiting\n\n");
 
     } else {
 

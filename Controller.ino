@@ -6,24 +6,19 @@
 
 // ----------------------------------------------------------------
 
-AudioInputAnalog          adc;
-AudioAnalyzeNoteFrequency note;
-AudioAnalyzePeak          peak;
-AudioConnection           patchCord(adc, note);
-AudioConnection           patchCord2(adc, peak);
-
-// ---------------------------------------------------------------
-
 #define FORWARD 0
 #define REVERSE 1
 
+#define MENU 0
+#define DETUNE 1
+#define CALIBRATE 2
+#define TUNE 3
+
 // ----------------------------------------------------------------
 
-int led_pin = 13;
 int motor_pin[] = {3, 4, 5, 6, 10, 9};
-int direction_pin = 11;
 
-// ----------------------------------------------------------------
+int direction_pin = 11;
 
 bool string_detuned[] = {true, true, true, true, true, true};
 bool string_calibrated[] = {true, true, true, true, true, true};
@@ -34,6 +29,16 @@ float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
 float speed_forward[] = {65, 65, 55, 50, 50, 90};
 float speed_reverse[] = {30, 40, 40, 30, 30, 70};
+
+int led_pin = 13;
+
+// ----------------------------------------------------------------
+
+AudioInputAnalog          adc;
+AudioAnalyzeNoteFrequency note;
+AudioAnalyzePeak          peak;
+AudioConnection           patchCord(adc, note);
+AudioConnection           patchCord2(adc, peak);
 
 // ----------------------------------------------------------------
 
@@ -65,10 +70,10 @@ void setup() {
 float f;
 float p;
 
-bool detuned = true;
-bool calibrated = true;
-bool waited = false;
-bool tuned = false;
+bool detuned = true; // remove
+bool calibrated = true; // remove
+bool waited = false; // remove
+bool tuned = false; // remove
 
 // ----------------------------------------------------------------
 

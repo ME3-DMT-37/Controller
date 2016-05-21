@@ -25,8 +25,12 @@ int direction_pin = 11;
 
 // ----------------------------------------------------------------
 
-float string_min[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
-float string_max[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
+bool string_detuned[] = {true, true, true, true, true, true};
+bool string_calibrated[] = {true, true, true, true, true, true};
+bool string_tuned[] = {true, true, true, true, true, true};
+
+float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
+float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
 float speed_forward[] = {65, 65, 55, 50, 50, 90};
 float speed_reverse[] = {30, 40, 40, 30, 30, 70};
@@ -111,12 +115,12 @@ void detune(int string, int direction) {
   // log note and peak voltage
   Serial.printf("detuning: %3.2f Hz (%3.2f V)\n", f, p);
 
-  if ((direction == FORWARD) && (f < string_max[string])) {
+  if ((direction == FORWARD) && (f < string_high[string])) {
 
     // tigthten string
     motorRun(string, 100);
 
-  } else if ((direction == REVERSE) && (f > string_min[string])) {
+  } else if ((direction == REVERSE) && (f > string_low[string])) {
 
     // loosen string
     motorRun(string, -100);
@@ -177,7 +181,7 @@ void calibrate(int string, int direction) {
 
     if (direction == FORWARD) {
 
-      if (f < string_max[string]) {
+      if (f < string_high[string]) {
 
         // check for stalling (no change in frequency)
         if ((abs(f - average) < 0.5) && (speed <= 100)) {
@@ -279,7 +283,7 @@ void tune(int string) {
   // log note and peak voltage
   Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
 
-  if (f > string_max[string]) {
+  if (f > string_high[string]) {
 
     // loosen string (over-tuned)
     motorRun(string, speed_reverse[string] * (-1));
@@ -287,7 +291,7 @@ void tune(int string) {
     // lower waited flag
     waited = false;
 
-  } else if (f < string_min[string]) {
+  } else if (f < string_low[string]) {
 
     // tighten string (under-tuned)
     motorRun(string, speed_forward[string]);

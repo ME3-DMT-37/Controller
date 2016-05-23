@@ -1,4 +1,5 @@
 #include <Audio.h>
+#include <EEPROM.h>
 #include <SD.h>
 #include <SerialFlash.h>
 #include <SPI.h>
@@ -9,11 +10,6 @@
 #define FORWARD 0
 #define REVERSE 1
 
-#define MENU 0
-#define DETUNE 1
-#define CALIBRATE 2
-#define TUNE 3
-
 // ----------------------------------------------------------------
 
 int led_pin = 13;
@@ -22,16 +18,16 @@ int motor_pin[] = {3, 4, 5, 6, 10, 9};
 
 int direction_pin = 11;
 
-bool string_detuned[] = {true, true, true, true, true, true};
-bool string_calibrated[] = {true, true, true, true, true, true};
-bool string_tuned[] = {true, false, true, true, true, true};
+bool string_detuned[] = {true, false, true, true, true, true};
+bool string_calibrated[] = {true, false, true, true, true, true};
+bool string_tuned[] = {true, true, true, true, true, true};
 
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
-float speed_forward[] = {65, 65, 55, 50, 50, 90};
-float speed_reverse[] = {30, 40, 40, 30, 30, 70};
- 
+int speed_forward[] = {100, 100, 100, 100, 100, 100};
+int speed_reverse[] = {100, 100, 100, 100, 100, 100};
+
 // ----------------------------------------------------------------
 
 AudioInputAnalog          adc;
@@ -60,43 +56,39 @@ void setup() {
   // delay for serial port initialisation
   delay(1000);
 
+  // recover forward speeds from memory
+  for (int i = 0; i < 6; i++) {
+
+    speed_forward[i] = EEPROM.read(i);
+    speed_reverse[i] = EEPROM.read(i + 6);
+
+    Serial.printf("string %d: %d / %d\n", i + 1, speed_forward[i], speed_reverse[i]);
+
+  }
+
   // allocate memory to audio library
   AudioMemory(30);
   note.begin(0.15);
 
 }
 
-// ================================================================
+// ----------------------------------------------------------------
 
 float f;
 float p;
-
-// ----------------------------------------------------------------
 
 void loop() {
 
   int string = 1;
 
-  // check note availability
-  if (note.available()) {
+  if (sample) {
 
-    // read frequency and peak voltage
-    f = note.read();
-    p = peak.read() * 1.2;
-
-    // remove mains interference and check peak voltage
-    if ((f > 55) && (p > 0.3)) {
-
-      if (!string_detuned[string]) {
-        detune(string, REVERSE);
-      } else if (!string_calibrated[string]) {
-        calibrate(string, FORWARD);
-      } else if (!string_tuned[string]) {
-        tune(string);
-      }
-
-    } else {
-      motorRun(string, 0);
+    if (!string_detuned[string]) {
+      detune(string, REVERSE);
+    } else if (!string_calibrated[string]) {
+      calibrate(string, FORWARD);
+    } else if (!string_tuned[string]) {
+      tune(string);
     }
 
   } else {
@@ -107,7 +99,29 @@ void loop() {
 
 }
 
-// ================================================================
+// ----------------------------------------------------------------
+
+bool sample() {
+
+  // check note availability
+  if (note.available()) {
+
+    // read frequency and peak voltage
+    f = note.read();
+    p = peak.read() * 1.2;
+
+    // remove mains interference and check peak voltage then raise flag
+    if ((f > 55) && (p > 0.3)) {
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+
+}
+
+// ----------------------------------------------------------------
 
 void detune(int string, int direction) {
 
@@ -145,7 +159,7 @@ void detune(int string, int direction) {
 
 }
 
-// ================================================================
+// ----------------------------------------------------------------
 
 const int memory = 5;
 
@@ -200,7 +214,7 @@ void calibrate(int string, int direction) {
 
           // log status
           Serial.printf("calibrating: continue\n\n");
-          
+
         }
 
       } else {
@@ -210,6 +224,9 @@ void calibrate(int string, int direction) {
 
         // save speed
         speed_forward[string] = speed;
+
+        // update EEPROM
+        EEPROM.update(string, speed);
 
         // raise calibrated flag
         string_calibrated[string] = true;
@@ -248,6 +265,9 @@ void calibrate(int string, int direction) {
         // save speed
         speed_reverse[string] = speed;
 
+        // update EEPROM
+        EEPROM.update(string, speed);
+
         // raise calibrated flag
         string_calibrated[string] = true;
 
@@ -275,11 +295,9 @@ void calibrate(int string, int direction) {
 
 }
 
-// ================================================================
+// ----------------------------------------------------------------
 
 bool waited = false;
-
-// ----------------------------------------------------------------
 
 void tune(int string) {
 
@@ -342,7 +360,7 @@ void tune(int string) {
 
 }
 
-// ================================================================
+// ----------------------------------------------------------------
 
 void motorRun(int motor, int speed) {
 

@@ -16,22 +16,22 @@
 
 // ----------------------------------------------------------------
 
+int led_pin = 13;
+
 int motor_pin[] = {3, 4, 5, 6, 10, 9};
 
 int direction_pin = 11;
 
 bool string_detuned[] = {true, true, true, true, true, true};
 bool string_calibrated[] = {true, true, true, true, true, true};
-bool string_tuned[] = {true, true, true, true, true, true};
+bool string_tuned[] = {true, false, true, true, true, true};
 
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
 float speed_forward[] = {65, 65, 55, 50, 50, 90};
 float speed_reverse[] = {30, 40, 40, 30, 30, 70};
-
-int led_pin = 13;
-
+ 
 // ----------------------------------------------------------------
 
 AudioInputAnalog          adc;
@@ -60,6 +60,7 @@ void setup() {
   // delay for serial port initialisation
   delay(1000);
 
+  // allocate memory to audio library
   AudioMemory(30);
   note.begin(0.15);
 
@@ -70,16 +71,11 @@ void setup() {
 float f;
 float p;
 
-bool detuned = true; // remove
-bool calibrated = true; // remove
-bool waited = false; // remove
-bool tuned = false; // remove
-
 // ----------------------------------------------------------------
 
 void loop() {
 
-  int string = 2;
+  int string = 1;
 
   // check note availability
   if (note.available()) {
@@ -91,11 +87,11 @@ void loop() {
     // remove mains interference and check peak voltage
     if ((f > 55) && (p > 0.3)) {
 
-      if (!detuned) {
+      if (!string_detuned[string]) {
         detune(string, REVERSE);
-      } else if (!calibrated) {
+      } else if (!string_calibrated[string]) {
         calibrate(string, FORWARD);
-      } else if (!tuned) {
+      } else if (!string_tuned[string]) {
         tune(string);
       }
 
@@ -136,7 +132,7 @@ void detune(int string, int direction) {
     motorRun(string, 0);
 
     // raise success flag
-    detuned = true;
+    string_detuned[string] = true;
 
     digitalWrite(led_pin, HIGH);
 
@@ -216,7 +212,7 @@ void calibrate(int string, int direction) {
         speed_forward[string] = speed;
 
         // raise calibrated flag
-        calibrated = true;
+        string_calibrated[string] = true;
 
         digitalWrite(led_pin, HIGH);
 
@@ -253,7 +249,7 @@ void calibrate(int string, int direction) {
         speed_reverse[string] = speed;
 
         // raise calibrated flag
-        calibrated = true;
+        string_calibrated[string] = true;
 
         digitalWrite(led_pin, HIGH);
 
@@ -280,6 +276,10 @@ void calibrate(int string, int direction) {
 }
 
 // ================================================================
+
+bool waited = false;
+
+// ----------------------------------------------------------------
 
 void tune(int string) {
 
@@ -326,7 +326,7 @@ void tune(int string) {
       waited = false;
 
       // raise tuned flag
-      tuned = true;
+      string_tuned[string] = true;
 
       // set LED on
       digitalWrite(led_pin, HIGH);
@@ -371,4 +371,3 @@ void motorRun(int motor, int speed) {
   digitalWrite(direction_pin, direction);
 
 }
-

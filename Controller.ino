@@ -18,8 +18,8 @@ int motor_pin[] = {3, 4, 5, 6, 10, 9};
 
 int direction_pin = 11;
 
-bool string_detuned[] = {true, false, true, true, true, true};
-bool string_calibrated[] = {true, false, true, true, true, true};
+bool string_detuned[] = {true, true, true, true, false, true};
+bool string_calibrated[] = {true, true, true, true, false, true};
 bool string_tuned[] = {true, true, true, true, true, true};
 
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
@@ -62,7 +62,7 @@ void setup() {
     speed_forward[i] = EEPROM.read(i);
     speed_reverse[i] = EEPROM.read(i + 6);
 
-    Serial.printf("string %d: %d / %d\n", i + 1, speed_forward[i], speed_reverse[i]);
+    Serial.printf("string %d: +%d / -%d\n", i + 1, speed_forward[i], speed_reverse[i]);
 
   }
 
@@ -79,9 +79,9 @@ float p;
 
 void loop() {
 
-  int string = 1;
+  int string = 4;
 
-  if (sample) {
+  if (sample()) {
 
     if (!string_detuned[string]) {
       detune(string, REVERSE);
@@ -117,6 +117,8 @@ bool sample() {
       return false;
     }
 
+  } else {
+    return false;
   }
 
 }

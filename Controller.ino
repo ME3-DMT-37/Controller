@@ -18,15 +18,19 @@ int motor_pin[] = {3, 4, 5, 6, 10, 9};
 
 int direction_pin = 11;
 
-bool string_detuned[] = {true, true, true, true, false, true};
-bool string_calibrated[] = {true, true, true, true, false, true};
+bool string_detuned[] = {true, true, true, true, true, true};
+bool string_calibrated[] = {true, true, true, true, true, true};
 bool string_tuned[] = {true, true, true, true, true, true};
+
+int silent = 0;
 
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
 int speed_forward[] = {100, 100, 100, 100, 100, 100};
 int speed_reverse[] = {100, 100, 100, 100, 100, 100};
+
+int string = 1;
 
 // ----------------------------------------------------------------
 
@@ -70,6 +74,10 @@ void setup() {
   AudioMemory(30);
   note.begin(0.15);
 
+  string_detuned[string] = true;
+  string_calibrated[string] = true;
+  string_tuned[string] = false;
+
 }
 
 // ----------------------------------------------------------------
@@ -78,8 +86,6 @@ float f;
 float p;
 
 void loop() {
-
-  int string = 4;
 
   if (sample()) {
 
@@ -91,8 +97,18 @@ void loop() {
       tune(string);
     }
 
+    silent = 0;
+
   } else {
+    
     motorRun(string, 0);
+
+    silent = silent + 1;
+
+    if (silent == 5) {
+      Serial.println("strum again");
+    }
+
   }
 
   delay(100);
@@ -268,7 +284,7 @@ void calibrate(int string, int direction) {
         speed_reverse[string] = speed;
 
         // update EEPROM
-        EEPROM.update(string, speed);
+        EEPROM.update(string + 6, speed);
 
         // raise calibrated flag
         string_calibrated[string] = true;

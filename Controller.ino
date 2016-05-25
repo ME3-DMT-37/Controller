@@ -12,6 +12,9 @@
 
 // ----------------------------------------------------------------
 
+float f;
+float p;
+
 int led_pin = 13;
 
 int motor_pin[] = {3, 4, 5, 6, 10, 9};
@@ -24,6 +27,8 @@ bool string_tuned[] = {true, true, true, true, true, true};
 
 int silent = 0;
 
+bool waited = false;
+
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
@@ -31,6 +36,14 @@ int speed_forward[] = {100, 100, 100, 100, 100, 100};
 int speed_reverse[] = {100, 100, 100, 100, 100, 100};
 
 int string = 1;
+
+const int memory = 5;
+
+float history[memory];
+
+int speed = 10; // will only work once!
+
+int iteration = 0;
 
 // ----------------------------------------------------------------
 
@@ -46,29 +59,14 @@ void setup() {
 
   pinMode(led_pin, OUTPUT);
 
-  // set motor control pins to outputs
-  for (int i = 0; i < 6; i++) {
-    pinMode(motor_pin[i], OUTPUT);
-  }
-
-  // set direction control pin to outputs
-  pinMode(direction_pin, OUTPUT);
+  // set up motors
+  motorSetup();
 
   // open serial port
   Serial.begin(9600);
 
   // delay for serial port initialisation
   delay(1000);
-
-  // recover forward speeds from memory
-  for (int i = 0; i < 6; i++) {
-
-    speed_forward[i] = EEPROM.read(i);
-    speed_reverse[i] = EEPROM.read(i + 6);
-
-    Serial.printf("string %d: +%d / -%d\n", i + 1, speed_forward[i], speed_reverse[i]);
-
-  }
 
   // allocate memory to audio library
   AudioMemory(30);
@@ -81,9 +79,6 @@ void setup() {
 }
 
 // ----------------------------------------------------------------
-
-float f;
-float p;
 
 void loop() {
 
@@ -176,16 +171,6 @@ void detune(int string, int direction) {
   }
 
 }
-
-// ----------------------------------------------------------------
-
-const int memory = 5;
-
-float history[memory];
-
-int speed = 10; // will only work once!
-
-int iteration = 0;
 
 // ----------------------------------------------------------------
 
@@ -315,8 +300,6 @@ void calibrate(int string, int direction) {
 
 // ----------------------------------------------------------------
 
-bool waited = false;
-
 void tune(int string) {
 
   digitalWrite(led_pin, LOW);
@@ -373,6 +356,30 @@ void tune(int string) {
       delay(1000);
 
     }
+
+  }
+
+}
+
+// ----------------------------------------------------------------
+
+void motorSetup() {
+
+  // set motor control pins to outputs
+  for (int i = 0; i < 6; i++) {
+    pinMode(motor_pin[i], OUTPUT);
+  }
+
+  // set direction control pin to outputs
+  pinMode(direction_pin, OUTPUT);
+
+  // recover speeds from memory
+  for (int i = 0; i < 6; i++) {
+
+    speed_forward[i] = EEPROM.read(i);
+    speed_reverse[i] = EEPROM.read(i + 6);
+
+    Serial.printf("string %d: +%d / -%d\n", i + 1, speed_forward[i], speed_reverse[i]);
 
   }
 

@@ -12,14 +12,14 @@
 
 // ----------------------------------------------------------------
 
-float f;
-float p;
-
 int led_pin = 13;
 
 int motor_pin[] = {3, 4, 5, 6, 10, 9};
 
 int direction_pin = 11;
+
+float f;
+float p;
 
 bool string_detuned[] = {true, true, true, true, true, true};
 bool string_calibrated[] = {true, true, true, true, true, true};
@@ -29,11 +29,11 @@ int silent = 0;
 
 bool waited = false;
 
-float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
-float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
-
 int speed_forward[] = {100, 100, 100, 100, 100, 100};
 int speed_reverse[] = {100, 100, 100, 100, 100, 100};
+
+float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
+float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
 int string = 1;
 

@@ -305,7 +305,8 @@ void tune(int string) {
   digitalWrite(led_pin, LOW);
 
   // log note and peak voltage
-  Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
+  //Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
+  Serial.printf("%d, %3.2f", millis(), f);
 
   if (f > string_high[string]) {
 
@@ -337,7 +338,7 @@ void tune(int string) {
       waited = true;
 
       // log status
-      Serial.printf("tuning: waiting\n\n");
+      //Serial.printf("tuning: waiting\n\n");
 
     } else {
 
@@ -351,7 +352,8 @@ void tune(int string) {
       digitalWrite(led_pin, HIGH);
 
       // log status
-      Serial.printf("tuning: done\n");
+      //Serial.printf("tuning: done\n");
+      Serial.printf("%d, %3.2f", millis(), f);
 
       delay(1000);
 

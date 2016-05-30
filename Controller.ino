@@ -35,8 +35,6 @@ int speed_reverse[] = {100, 100, 100, 100, 100, 100};
 float string_low[] = {81.94, 109.37, 145.98, 194.87, 245.52, 327.73};
 float string_high[] = {82.89, 110.64, 147.68, 197.14, 248.37, 331.54};
 
-int string = 1;
-
 const int memory = 5;
 
 float history[memory];
@@ -44,6 +42,11 @@ float history[memory];
 int speed = 10; // will only work once!
 
 int iteration = 0;
+
+// ----------------------------------------------------------------
+
+// CHANGE THIS NUMBER CHRIS
+int string = 5;
 
 // ----------------------------------------------------------------
 
@@ -59,15 +62,15 @@ void setup() {
 
   pinMode(led_pin, OUTPUT);
 
-  // set up motors
-  motorSetup();
-
   // open serial port
   Serial.begin(9600);
 
   // delay for serial port initialisation
   delay(1000);
 
+  // set up motors
+  motorSetup();
+  
   // allocate memory to audio library
   AudioMemory(30);
   note.begin(0.15);
@@ -306,7 +309,7 @@ void tune(int string) {
 
   // log note and peak voltage
   //Serial.printf("tuning: %3.2f Hz (%3.2f V)\n", f, p);
-  Serial.printf("%d, %3.2f", millis(), f);
+  Serial.printf("%d, %3.2f\n", millis(), f);
 
   if (f > string_high[string]) {
 
@@ -353,8 +356,9 @@ void tune(int string) {
 
       // log status
       //Serial.printf("tuning: done\n");
-      Serial.printf("%d, %3.2f", millis(), f);
-
+      Serial.printf("%d, %3.2f\n", millis(), f);
+      Serial.printf("done\n");
+      
       delay(1000);
 
     }
